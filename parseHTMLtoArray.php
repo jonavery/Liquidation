@@ -2,37 +2,37 @@
 
 /*** 
  * Parse HTML table into a PHP array given an HTML string.
- * Source: https://www.codeproject.com/Tips/1074174/Simple-Way-to-Convert-HTML-Table-Data-into-PHP-Arr
+ * 
+ * NOTE: Only works on HTML tables on Liquidation.com
+ *       Tables on other sites likely have <th> tags for
+ *       their headers, which would break this function.
  * ***/
 
 function htmlToArray(string $html) {
-    // Store table headers and details.
-    $DOM = new DOMDocument();
-    $DOM->loadHTML($html);
+    // Clean up html and store as a dom.
+    $dom = new DOMDocument();
+    @$dom->loadHTML($html);
 
-    $rows = $DOM->getElementsByTagName('th');
-    $cols = $DOM->getElementsByTagName('td');
-    $labels = [];
-    foreach($rows as $row) {
-        $labels[] = trim($row->textContent);
+    // Grab first table from dom and store its rows and columns by tag name.
+    $rows = $dom->getElementsByTagName('table')->item(1)->getElementsByTagName('tr');
+    $headers = $rows->item(0)->getElementsByTagName('td');
+
+    $resultArray = [];
+    $keys = [];
+
+    foreach($headers as $header) {
+        $keys[] = strtolower($header->nodeValue);
     }
 
-    // Store table information.
-    $tableElements = [];
-    $i = 0;
-    $j = 0;
-    foreach($cols as $col) {
-        $tableElements[$j][] = trim($col->textContent);
-        $i++;
-        $j = $i % count($labels) == 0 ? $j + 1 : $j;
-    }
-
-    // Format and return table information as array.
-    $tableArray = [];
-    for ($i = 0; $i < count($tableElements); $i++) {
-        for ($j = 0; $j < count($labels); $j++) {
-            $tableArray[$i][$labels[$j]] = $tableElements[$i][$j];
+    foreach($rows as $i => $row) {
+        if ($i<1) {continue;}
+        $item = [];
+        foreach($keys as $j=>$key) {
+            $cells = $row->getElementsByTagName('td');
+            $item[$key] = $cells->item($j)->nodeValue;
         }
+        $resultArray[] = $item;
     }
-    return $tableArray;
+    array_pop($resultArray);
+    return $resultArray;
 }
